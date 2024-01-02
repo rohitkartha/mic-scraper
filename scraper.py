@@ -1,13 +1,14 @@
 import httpx
 from bs4 import BeautifulSoup
 
-class state:
-  def __init__(self, name, cities):
+class State:
+  def __init__(self, name, cities, link):
     self.name = name
     self.cities = cities
+    self.link = link
 
 
-class city:
+class City:
   def __init__(self, name, link):
     self.name = name
     self.link = link
@@ -30,14 +31,16 @@ state_geounits = list(united_states_geoblock.find_all('div', class_='geoUnit'))
 
 all_states_data = []
 
-for i in range(0, 1):
+for i in range(0, len(state_geounits)):
     curr_cities = [] 
     curr_state_soup = state_geounits[i]
     state_name = curr_state_soup.find('h3').find('a').text
+    state_link = curr_state_soup.find('h3').find('a').get('href')
     
-    cities = list(curr_state_soup.find_all('li'))
-    for city in cities:
-        curr_city = city(city.find('a').text, city.find('a').get('href'))
-        print(city.find('a').get('href')) 
-    #print(cities)
-    #print(curr.find('a').get('href'))
+    soup_cities = list(curr_state_soup.find_all('li'))
+    for soup_city in soup_cities:
+        curr_city = City(soup_city.find('a').text, "https://badslava.com/" + soup_city.find('a').get('href'))
+        curr_cities.append(curr_city)
+    curr_state = State(state_name, curr_cities, state_link)
+    all_states_data.append(curr_state)
+
