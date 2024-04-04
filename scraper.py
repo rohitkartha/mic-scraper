@@ -2,6 +2,9 @@ import httpx
 import sys
 from bs4 import BeautifulSoup
 import sqlite3
+import urllib.parse 
+from dotenv import load_dotenv
+import os
 
 class State:
   def __init__(self, name, cities, link):
@@ -29,6 +32,8 @@ class Show:
     self.phone = phone
     self.hostname = hostname
 
+load_dotenv()
+key = os.getenv('GOOGLE_API_KEY')
 main_page = httpx.get('https://badslava.com/')
 soup = BeautifulSoup(main_page.text, 'html.parser')
 united_states_geoblock = (soup.find('div', class_='united-states'))
@@ -92,13 +97,39 @@ all_shows = []
 for state in all_states_data:
     for city in state.cities:
         for show in city.shows:
+            address_string = show.address + " " + city.name + " " + state.name
+            query_address = urllib.parse.quote(address_string)
+            lat = 0
+            long = 0
+            try:
+                cur =httpx.get("https://maps.googleapis.com/maps/api/geocode/json?address=" + query_address + '&key=' + key)
+                lat = cur.json()['results'][0]['geometry']['location']['lat']
+                long = cur.json()['results'][0]['geometry']['location']['lng']
+
+            except httpx.HTTPError as http_err:
+                print(f"HTTP error occurred: {http_err}")
+                continue 
+            
+            except Exception as err:
+                print(f"error: {err}")
+                continue  
             show_info = {
                 'state': state.name,
                 'city': city.name,
                 'show_name': show.name,
                 'date': show.date,
                 'time': show.time,
-                'venue': show.venue
+                'venue': show.venue,
+                'address': show.address,
+                'freq': show.freq,
+                'cost': show.cost,
+                'email': show.email,
+                'phone': show.phone,
+                'hostname': show.hostname,
+                'link': show.link,
+                'lat' : lat,
+                'long' : long
+
             }
             all_shows.append(show_info)
 
@@ -111,19 +142,29 @@ cursor.execute('''
     CREATE TABLE IF NOT EXISTS shows (
         show_id INTEGER PRIMARY KEY,
         state_name TEXT NOT NULL,
-        city_name TEXT NOT NULL,
+        city_name TEXT NOT NULL, 
         show_name TEXT NOT NULL,
         show_date TEXT,
         show_time TEXT,
-        show_venue TEXT
+        show_venue TEXT,
+        show_address TEXT,
+        show_freq TEXT,
+        show_cost TEXT,
+        show_email TEXT,
+        show_phone TEXT,
+        show_hostname TEXT,
+        show_link TEXT,
+        show_lat FLOAT,
+        show_long FLOAT
     )
 ''')
 
 cursor.executemany('''
-    INSERT INTO shows (state_name, city_name, show_name, show_date, show_time, show_venue)
-    VALUES (:state, :city, :show_name, :date, :time, :venue)
+    INSERT INTO shows (state_name, city_name, show_name, show_date, show_time, show_venue, show_address, show_freq, show_cost, show_email, show_phone, show_hostname, show_link, show_lat, show_long)
+    VALUES (:state, :city, :show_name, :date, :time, :venue, :address, :freq, :cost, :email, :phone, :hostname, :link, :lat, :long)
 ''', all_shows)
 
+print('done')
 conn.commit()
 conn.close()
    
