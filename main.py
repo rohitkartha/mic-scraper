@@ -21,8 +21,9 @@ app.add_middleware(
 )
 
 
-@app.get("/")
+@app.get("/shows/")
 def read_root():
+    
     conn  = sqlite3.connect('us_mic_data.db')
 
     cursor = conn.cursor()
@@ -49,7 +50,9 @@ def read_root():
             'show_email': row[10],
             'show_phone': row[11],
             'show_hostname': row[12],
-            'show_link': row[13]
+            'show_link': row[13],
+            'show_lat': row[14],
+            'show_long': row[15],
         }
         shows.append(show)
 
